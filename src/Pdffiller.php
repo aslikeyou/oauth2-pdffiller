@@ -2,122 +2,82 @@
 
 namespace aslikeyou\OAuth2\Client\Provider;
 
+use League\OAuth2\Client\Provider\GenericProvider;
 use InvalidArgumentException;
-use League\OAuth2\Client\Provider\AbstractProvider;
-use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
-use League\OAuth2\Client\Provider\GenericResourceOwner;
-use League\OAuth2\Client\Token\AccessToken;
-use League\OAuth2\Client\Tool\BearerAuthorizationTrait;
-use Psr\Http\Message\ResponseInterface;
+use League\Uri\Schemes\Http as HttpUri;
+use League\Uri\Modifiers\Resolve;
 
 /**
  * Represents a generic service provider that may be used to interact with any
  * OAuth 2.0 service provider, using Bearer token authentication.
  */
-class PdffillerProvider extends AbstractProvider
+class PdffillerProvider extends GenericProvider
 {
-    use BearerAuthorizationTrait;
+    private $urlApiDomain;
+    private $accessTokenHash;
 
-    /**
-     * @var string
-     */
-    private $urlAuthorize;
-
-    /**
-     * @var string
-     */
-    private $urlAccessToken;
-
-    /**
-     * @var string
-     */
-    private $urlResourceOwnerDetails;
-
-    /**
-     * @var string
-     */
-    private $accessTokenMethod;
-
-    /**
-     * @var string
-     */
-    private $accessTokenResourceOwnerId;
-
-    /**
-     * @var array|null
-     */
-    private $scopes = null;
-
-    /**
-     * @var string
-     */
-    private $scopeSeparator;
-
-    /**
-     * @var string
-     */
-    private $responseError = 'error';
-
-    /**
-     * @var string
-     */
-    private $responseCode;
-
-    /**
-     * @var string
-     */
-    private $responseResourceOwnerId = 'id';
-
-    /**
-     * @param array $options
-     * @param array $collaborators
-     */
     public function __construct(array $options = [], array $collaborators = [])
     {
-        $this->assertRequiredOptions($options);
+        $this->assertPdffillerOptions($options);
 
-        $possible   = $this->getConfigurableOptions();
+        $possible   = $this->getPdffillerOptions();
         $configured = array_intersect_key($options, array_flip($possible));
 
         foreach ($configured as $key => $value) {
             $this->$key = $value;
         }
-
         // Remove all options that are only used locally
         $options = array_diff_key($options, $configured);
 
+        $options = array_merge([
+            'redirectUri'             => 'http://localhost/redirect_uri',
+            'urlAuthorize'            => 'http://localhost/url_authorize',
+            'urlResourceOwnerDetails' => 'http://localhost/url_resource_owner_details'], $options);
         parent::__construct($options, $collaborators);
     }
 
-    /**
-     * Returns all options that can be configured.
-     *
-     * @return array
-     */
-    protected function getConfigurableOptions()
+    public function getAuthenticatedRequest($method, $url, $token, array $options = [])
     {
-        return array_merge($this->getRequiredOptions(), [
-            'accessTokenMethod',
-            'accessTokenResourceOwnerId',
-            'scopeSeparator',
-            'responseError',
-            'responseCode',
-            'responseResourceOwnerId',
-            'scopes',
-        ]);
+        $baseUri     = HttpUri::createFromString($this->urlApiDomain);
+        $relativeUri = HttpUri::createFromString($url);
+        $modifier    = new Resolve($baseUri);
+        $newUri = $modifier->__invoke($relativeUri);
+        return parent::getAuthenticatedRequest($method, $newUri, $token, $options);
+    }
+
+    public function apiCall($method, $url, $options = []) {
+        if($this->accessTokenHash === null) {
+            throw new InvalidArgumentException(
+                'You did not set access token'
+            );
+        }
+
+        return $this->getResponse($this->getAuthenticatedRequest($method, $url, $this->getAccessToken(), $options));
+    }
+
+    public function getApiCall($url , $options = []) {
+        return $this->apiCall('GET', $url, $options);
+    }
+
+    public function postApiCall($url , $options = []) {
+        return $this->apiCall('POST', $url, $options);
+    }
+
+    public function putApiCall($url , $options = []) {
+        return $this->apiCall('PUT', $url, $options);
+    }
+
+    public function deleteApiCall($url , $options = []) {
+        return $this->apiCall('DELETE', $url, $options);
     }
 
     /**
-     * Returns all options that are required.
-     *
      * @return array
      */
-    protected function getRequiredOptions()
+    protected function getPdffillerOptions()
     {
         return [
-            'urlAuthorize',
-            'urlAccessToken',
-            'urlResourceOwnerDetails',
+            'urlApiDomain',
         ];
     }
 
@@ -128,9 +88,9 @@ class PdffillerProvider extends AbstractProvider
      * @return void
      * @throws InvalidArgumentException
      */
-    private function assertRequiredOptions(array $options)
+    private function assertPdffillerOptions(array $options)
     {
-        $missing = array_diff_key(array_flip($this->getRequiredOptions()), $options);
+        $missing = array_diff_key(array_flip($this->getPdffillerOptions()), $options);
 
         if (!empty($missing)) {
             throw new InvalidArgumentException(
@@ -139,79 +99,17 @@ class PdffillerProvider extends AbstractProvider
         }
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getBaseAuthorizationUrl()
+    public function getAccessToken($grant = 'client_credentials', array $options = [])
     {
-        return $this->urlAuthorize;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getBaseAccessTokenUrl(array $params)
-    {
-        return $this->urlAccessToken;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getResourceOwnerDetailsUrl(AccessToken $token)
-    {
-        return $this->urlResourceOwnerDetails;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getDefaultScopes()
-    {
-        return $this->scopes;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected function getAccessTokenMethod()
-    {
-        return $this->accessTokenMethod ?: parent::getAccessTokenMethod();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected function getAccessTokenResourceOwnerId()
-    {
-        return $this->accessTokenResourceOwnerId ?: parent::getAccessTokenResourceOwnerId();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected function getScopeSeparator()
-    {
-        return $this->scopeSeparator ?: parent::getScopeSeparator();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected function checkResponse(ResponseInterface $response, $data)
-    {
-        if (!empty($data[$this->responseError])) {
-            $error = $data[$this->responseError];
-            $code  = $this->responseCode ? $data[$this->responseCode] : 0;
-            throw new IdentityProviderException($error, $code, $data);
+        if($this->accessTokenHash !== null) {
+            return $this->accessTokenHash;
         }
+        return parent::getAccessToken($grant, $options);
     }
 
-    /**
-     * @inheritdoc
-     */
-    protected function createResourceOwner(array $response, AccessToken $token)
-    {
-        return new GenericResourceOwner($response, $this->responseResourceOwnerId);
+    public function setAccessTokenHash($value) {
+        $this->accessTokenHash = $value;
     }
+
+
 }
