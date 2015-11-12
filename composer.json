@@ -1,4 +1,6 @@
 {
+    "name" : "aslikeyou/pdffiller-php-client",
+    "description": "Simple client for pdffiller.com api",
     "require": {
         "league/oauth2-client": "^1.0",
         "league/uri": "^4.0"
@@ -7,5 +9,10 @@
         "adammbalogh/key-value-store-file": "^0.5.3",
         "larapack/dd": "^1.0",
         "nesbot/carbon": "^1.21"
+    },
+    "autoload": {
+        "psr-4": {
+            "Aslikeyou\\OAuth2\\Client\\": "src/"
+        }
     }
 }

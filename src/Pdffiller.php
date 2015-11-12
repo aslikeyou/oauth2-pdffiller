@@ -11,7 +11,7 @@ use League\Uri\Modifiers\Resolve;
  * Represents a generic service provider that may be used to interact with any
  * OAuth 2.0 service provider, using Bearer token authentication.
  */
-class PdffillerProvider extends GenericProvider
+class Pdffiller extends GenericProvider
 {
     private $urlApiDomain;
     private $accessTokenHash;
@@ -55,7 +55,7 @@ class PdffillerProvider extends GenericProvider
         return $this->getResponse($this->getAuthenticatedRequest($method, $url, $this->getAccessToken(), $options));
     }
 
-    public function getApiCall($url , $options = []) {
+    public function queryApiCall($url , $options = []) {
         return $this->apiCall('GET', $url, $options);
     }
 
