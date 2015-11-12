@@ -1,6 +1,7 @@
 {
     "name" : "aslikeyou/pdffiller-php-client",
     "description": "Simple client for pdffiller.com api",
+    "version" : "1.0.0",
     "require": {
         "league/oauth2-client": "^1.0",
         "league/uri": "^4.0"
