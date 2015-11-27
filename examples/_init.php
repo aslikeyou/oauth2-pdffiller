@@ -19,18 +19,20 @@ $provider = new Pdffiller([
 
 $tz = 'Europe/Kiev';
 
-$kvs = new KeyValueStore(new FileAdapter(Flintstone::load('usersDatabase', ['dir' => '/tmp'])));
+$kvs = new KeyValueStore(new FileAdapter(new Flintstone::load('usersDatabase', ['dir' => '/tmp'])));
 
 $accessTokenKey = 'access_token';
 
 if (!$accessTokenString = $kvs->has($accessTokenKey)) {
     $accessToken = $provider->getAccessToken();
+
     $liveTimeInSec = Carbon::createFromTimestamp(
         $accessToken->getExpires(),
         $tz
     )->diffInSeconds(Carbon::now($tz));
-    $kvs->set('access_token', $accessToken->getToken());
-    $kvs->expire('access_token', $liveTimeInSec);
+
+    $kvs->set($accessTokenKey, $accessToken->getToken());
+    $kvs->expire($accessTokenKey, $liveTimeInSec);
     $accessTokenString = $accessToken->getToken();
 }
 
