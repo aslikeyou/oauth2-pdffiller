@@ -13,7 +13,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Aslikeyou\\OAuth2\\Client\\": "src/"
+            "aslikeyou\\OAuth2\\Client\\": "src/"
         }
     }
 }
