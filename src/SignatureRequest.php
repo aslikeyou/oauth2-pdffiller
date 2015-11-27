@@ -1,13 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: aslikeyou
- * Date: 11/12/15
- * Time: 11:19 AM
- */
 
 namespace aslikeyou\OAuth2\Client\Provider;
-
 
 class SignatureRequest extends BaseEntity
 {
