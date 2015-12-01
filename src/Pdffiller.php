@@ -6,6 +6,7 @@ use League\OAuth2\Client\Provider\GenericProvider;
 use InvalidArgumentException;
 use League\Uri\Schemes\Http as HttpUri;
 use League\Uri\Modifiers\Resolve;
+use Psr\Http\Message\RequestInterface;
 
 /**
  * Represents a generic service provider that may be used to interact with any
@@ -15,6 +16,7 @@ class Pdffiller extends GenericProvider
 {
     private $urlApiDomain;
     private $accessTokenHash;
+    private $statusCode;
 
     public function __construct(array $options = [], array $collaborators = [])
     {
@@ -72,6 +74,33 @@ class Pdffiller extends GenericProvider
     }
 
     /**
+     * Gets status code
+     *
+     * @return int|null
+     */
+    public function getStatusCode()
+    {
+        return $this->statusCode;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param  RequestInterface $request
+     * @return mixed
+     */
+    public function getResponse(RequestInterface $request)
+    {
+        $response = $this->sendRequest($request);
+        $parsed = $this->parseResponse($response);
+
+        $this->statusCode = $response->getStatusCode();
+        $this->checkResponse($response, $parsed);
+
+        return $parsed;
+    }
+
+    /**
      * @return array
      */
     protected function getPdffillerOptions()
@@ -110,6 +139,4 @@ class Pdffiller extends GenericProvider
     public function setAccessTokenHash($value) {
         $this->accessTokenHash = $value;
     }
-
-
 }
